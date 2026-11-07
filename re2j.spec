@@ -18,8 +18,9 @@ BuildOption(install):	--file-name re2j --link %{name} --alias com.google.re2j:re
 %description
 RE2/J is a Java port of RE2. Matching runs in time linear in the size
 of the input. 1.8 is the current release. The build targets Java 8 and
-skips tests. The GWT super-sources are not compiled. The automatic
-module name is com.google.re2j.
+skips tests. The GWT super-sources are not compiled, and the Gradle
+benchmark and unicode projects are not built. The automatic module
+name is com.google.re2j.
 
 %prep
 %autosetup -n re2j-re2j-%{version}
@@ -35,6 +36,18 @@ shutil.rmtree(super_dir)
 kept = [p for p in Path("java").rglob("*.java")]
 if len(kept) != 19:
     raise SystemExit("unexpected java file count " + str(len(kept)))
+# Gradle files are not the build. The unicode and benchmark projects
+# declare compile dependencies the library sources do not import, and
+# sysjar would turn those into BuildRequires.
+for gradle in Path(".").rglob("*.gradle"):
+    gradle.unlink()
+for extra in (Path("gradlew"), Path("gradlew.bat")):
+    if extra.is_file():
+        extra.unlink()
+if Path("gradle").is_dir():
+    shutil.rmtree(Path("gradle"))
+if list(Path(".").rglob("*.gradle")):
+    raise SystemExit("gradle build files remain")
 
 NS = "http://maven.apache.org/POM/4.0.0"
 ET.register_namespace("", NS)
